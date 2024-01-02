@@ -39,8 +39,8 @@ exports.authMiddleware = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
 
     // Check if the decoded access token is blacklisted
+    const user = await User.findById(decoded._id).select("-password");
 
-    const user = await User.findById(decoded._id);
     if (!user) {
       return res.status(404).json({ message: "No user found with this id." });
     }
