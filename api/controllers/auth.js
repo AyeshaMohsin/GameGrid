@@ -3,6 +3,8 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const BlacklistedAccessToken = require("../models/BlacklistedAccessToken");
 const BlacklistedRefreshToken = require("../models/BlacklistedRefreshToken");
+const multer = require('multer');
+const upload = multer(); 
 
 // Helper functions
 
@@ -23,6 +25,40 @@ const generateRefreshToken = (user) => {
   return jwt.sign(userWithoutPass, process.env.JWT_REFRESH_SECRET, {
     expiresIn: process.env.JWT_REFRESH_EXPIRATION,
   });
+};
+
+
+// Register a new user
+exports.registerMulter = async (req, res) => {
+  try {
+    // Access fields from form data
+    const { fullName, email, username, password } = req.body;
+
+    // Check if the email already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "Email already Registered." });
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create a new user
+    const newUser = new User({
+      fullName,
+      email,
+      username,
+      password: hashedPassword,
+    });
+
+    // Save the user to the database
+    await newUser.save();
+
+    res.status(201).json({ message: "User registered successfully" });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 };
 
 // Register a new user
@@ -213,4 +249,38 @@ exports.logout = async (req, res) => {
 exports.protected = async (req, res) => {
   console.log("Private route accessed !");
   res.json({ message: "This is a protected route", user: req.user });
+};
+
+// Google Authentication failed
+exports.googleFailure = async (req, res) => {
+  res.status(401).json({ message: "Google Authentication Failed"});
+};
+
+exports.googleLogin = async (req, res) => {
+  console.log("googleLogin in controllers accessed!")
+  try {
+    const googleProfile = req.user; 
+    console.log("Google Profile: ", googleProfile);
+    // Check if the user already exists in your database
+    const user = await User.findOne({ googleId: googleProfile.googleId });
+    
+
+    const user_object = user.toObject();
+
+    const accessToken = generateAccessToken(user_object);
+    const refreshToken = generateRefreshToken(user_object);
+
+    const userWithoutPass = removePassword(user_object);
+
+    const response = {
+      success: true,
+      user: userWithoutPass,
+      accessToken,
+      refreshToken,
+    };
+    res.status(200).json(response);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 };

@@ -5,6 +5,11 @@ const commentSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User', 
+    required: true,
+  },
   images: [{
     type: String, // image URLs are stored as strings
   }],

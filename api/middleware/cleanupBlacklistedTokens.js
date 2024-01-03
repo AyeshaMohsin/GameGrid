@@ -1,6 +1,7 @@
 const BlacklistedAccessToken = require('../models/BlacklistedAccessToken.js'); 
 
 function cleanupExpiredTokens() {
+  console.log("cleanup function getting called.")
   setInterval(async () => {
     const expiredTokens = await BlacklistedAccessToken.find({
       expiresAt: { $lt: new Date() },
